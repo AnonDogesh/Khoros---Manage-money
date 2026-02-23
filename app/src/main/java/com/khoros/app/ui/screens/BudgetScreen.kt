@@ -1,5 +1,6 @@
 package com.khoros.app.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,28 +19,31 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.khoros.app.viewmodel.TransactionsViewModel
 
 /**
- * Budget screen with simple monthly category limits.
+ * Budget screen with limits synced to transaction categories.
  */
 @Composable
-fun BudgetScreen(requestAddCategory: Boolean, onAddCategoryConsumed: () -> Unit) {
-    val categoryLimits = remember {
-        mutableStateListOf(
-            "Food & Dining" to 4000,
-            "Transport" to 2500,
-            "Rent & Bills" to 12000,
-            "Groceries" to 3500
-        )
-    }
+fun BudgetScreen(
+    viewModel: TransactionsViewModel,
+    requestAddCategory: Boolean,
+    onAddCategoryConsumed: () -> Unit
+) {
+    val categories = viewModel.categories.value
+    val limits = remember { mutableStateMapOf<String, Int>() }
     var showAddDialog by remember { mutableStateOf(false) }
+
+    categories.forEach { category ->
+        if (limits[category.name] == null) limits[category.name] = 0
+    }
 
     LaunchedEffect(requestAddCategory) {
         if (requestAddCategory) {
@@ -48,6 +52,8 @@ fun BudgetScreen(requestAddCategory: Boolean, onAddCategoryConsumed: () -> Unit)
         }
     }
 
+    val totalBudget = limits.values.sum()
+
     Column(
         modifier = Modifier
             .padding(16.dp)
@@ -55,22 +61,23 @@ fun BudgetScreen(requestAddCategory: Boolean, onAddCategoryConsumed: () -> Unit)
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("Budget & Limits", style = MaterialTheme.typography.headlineSmall)
-        Text("Monthly", style = MaterialTheme.typography.bodyMedium)
+        Text("Total Budget: ₹$totalBudget", style = MaterialTheme.typography.titleLarge)
 
-        categoryLimits.forEachIndexed { index, (category, limit) ->
+        categories.forEach { category ->
+            val limit = limits[category.name] ?: 0
             Card {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(category, style = MaterialTheme.typography.titleLarge)
+                        Text(category.name, style = MaterialTheme.typography.titleLarge)
                         Text("₹$limit")
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = {
-                            categoryLimits[index] = category to (limit + 500)
-                        }) { Text("Increase") }
-                        Button(onClick = {
-                            categoryLimits[index] = category to (limit - 500).coerceAtLeast(0)
-                        }) { Text("Decrease") }
+                        Button(onClick = { limits[category.name] = (limits[category.name] ?: 0) + 500 }) {
+                            Text("Set Limit")
+                        }
+                        Button(onClick = { limits[category.name] = ((limits[category.name] ?: 0) - 500).coerceAtLeast(0) }) {
+                            Text("Reduce")
+                        }
                     }
                 }
             }
@@ -81,7 +88,8 @@ fun BudgetScreen(requestAddCategory: Boolean, onAddCategoryConsumed: () -> Unit)
         AddBudgetCategoryDialog(
             onDismiss = { showAddDialog = false },
             onAdd = { name, amount ->
-                categoryLimits.add(name to amount)
+                viewModel.addCategory(name)
+                limits[name] = amount
                 showAddDialog = false
             }
         )

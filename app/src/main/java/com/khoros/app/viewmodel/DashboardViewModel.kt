@@ -25,10 +25,19 @@ class DashboardViewModel(repository: KhorosRepository) : ViewModel() {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0f)
 
     /**
-     * Creates daily totals for line graph drawing.
+     * Creates daily totals for expense graph drawing.
      */
-    fun dailyExpenseTrend(items: List<TransactionEntity>): List<Pair<Float, Float>> {
-        val grouped = items.filter { it.type == "Expense" }
+    fun dailyExpenseTrend(items: List<TransactionEntity>): List<Pair<Float, Float>> =
+        trendByType(items, "Expense")
+
+    /**
+     * Creates daily totals for income graph drawing.
+     */
+    fun dailyIncomeTrend(items: List<TransactionEntity>): List<Pair<Float, Float>> =
+        trendByType(items, "Income")
+
+    private fun trendByType(items: List<TransactionEntity>, type: String): List<Pair<Float, Float>> {
+        val grouped = items.filter { it.type == type }
             .groupBy { it.date.takeLast(2).toIntOrNull() ?: 1 }
             .toSortedMap()
         return grouped.map { (day, tx) -> day.toFloat() to tx.sumOf { it.amount.toDouble() }.toFloat() }

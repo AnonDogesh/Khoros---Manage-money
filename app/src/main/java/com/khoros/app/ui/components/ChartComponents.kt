@@ -1,7 +1,7 @@
 package com.khoros.app.ui.components
 
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
@@ -52,19 +53,11 @@ fun DonutChart(data: List<Pair<String, Float>>, modifier: Modifier = Modifier) {
             }
             Text("₹${"%.2f".format(total)}", style = MaterialTheme.typography.titleLarge)
         }
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            data.forEachIndexed { i, (category, _) ->
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Box(Modifier.size(10.dp).background(palette[i % palette.size], CircleShape))
-                    Text(category, style = MaterialTheme.typography.bodySmall)
-                }
-            }
-        }
     }
 }
 
 /**
- * Draws an animated line chart for trend values.
+ * Draws an animated line chart for a single trend.
  */
 @Composable
 fun LineTrendChart(points: List<Pair<Float, Float>>, modifier: Modifier = Modifier) {
@@ -76,7 +69,7 @@ fun LineTrendChart(points: List<Pair<Float, Float>>, modifier: Modifier = Modifi
     Canvas(modifier = modifier.fillMaxWidth().height(180.dp).padding(8.dp)) {
         if (points.size < 2) return@Canvas
         val widthStep = size.width / (points.size - 1)
-        val path = androidx.compose.ui.graphics.Path()
+        val path = Path()
         points.forEachIndexed { index, (_, y) ->
             val x = index * widthStep
             val yPos = size.height - (y / maxY) * size.height * progress
@@ -84,5 +77,48 @@ fun LineTrendChart(points: List<Pair<Float, Float>>, modifier: Modifier = Modifi
             drawCircle(pointColor, radius = 7f, center = Offset(x, yPos))
         }
         drawPath(path = path, color = lineColor, style = Stroke(width = 6f))
+    }
+}
+
+/**
+ * Draws two trend lines for income and expense comparison.
+ */
+@Composable
+fun DualLineTrendChart(
+    incomePoints: List<Pair<Float, Float>>,
+    expensePoints: List<Pair<Float, Float>>,
+    modifier: Modifier = Modifier
+) {
+    val maxY = (incomePoints + expensePoints).maxOfOrNull { it.second }?.coerceAtLeast(1f) ?: 1f
+    val progress by animateFloatAsState(targetValue = 1f, animationSpec = tween(900), label = "dual-line-progress")
+    val incomeColor = MaterialTheme.colorScheme.primary
+    val expenseColor = MaterialTheme.colorScheme.tertiary
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Box(Modifier.size(10.dp).background(incomeColor, CircleShape))
+                Text("Income", style = MaterialTheme.typography.bodySmall)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Box(Modifier.size(10.dp).background(expenseColor, CircleShape))
+                Text("Expense", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        Canvas(modifier = modifier.fillMaxWidth().height(200.dp).padding(8.dp)) {
+            fun drawSeries(points: List<Pair<Float, Float>>, color: androidx.compose.ui.graphics.Color) {
+                if (points.size < 2) return
+                val widthStep = size.width / (points.size - 1)
+                val path = Path()
+                points.forEachIndexed { index, (_, y) ->
+                    val x = index * widthStep
+                    val yPos = size.height - (y / maxY) * size.height * progress
+                    if (index == 0) path.moveTo(x, yPos) else path.lineTo(x, yPos)
+                }
+                drawPath(path = path, color = color, style = Stroke(width = 5f, cap = StrokeCap.Round))
+            }
+            drawSeries(incomePoints, incomeColor)
+            drawSeries(expensePoints, expenseColor)
+        }
     }
 }

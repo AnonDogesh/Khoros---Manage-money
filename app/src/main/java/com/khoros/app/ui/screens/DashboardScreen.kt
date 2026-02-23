@@ -16,7 +16,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.khoros.app.ui.components.LineTrendChart
+import com.khoros.app.ui.components.DualLineTrendChart
 import com.khoros.app.viewmodel.DashboardViewModel
 
 /**
@@ -53,7 +53,10 @@ fun DashboardScreen(
             Card {
                 Column(Modifier.padding(16.dp)) {
                     Text("Weekly spending", style = MaterialTheme.typography.titleLarge)
-                    LineTrendChart(points = viewModel.dailyExpenseTrend(tx))
+                    DualLineTrendChart(
+                        incomePoints = viewModel.dailyIncomeTrend(tx),
+                        expensePoints = viewModel.dailyExpenseTrend(tx)
+                    )
                 }
             }
         }

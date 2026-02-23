@@ -117,6 +117,7 @@ fun KhorosApp(factory: ViewModelFactory) {
             composable(NavDestination.Analytics.route) { AnalyticsScreen(analyticsVm) }
             composable(NavDestination.Budget.route) {
                 BudgetScreen(
+                    viewModel = txVm,
                     requestAddCategory = budgetAddRequest,
                     onAddCategoryConsumed = { budgetAddRequest = false }
                 )

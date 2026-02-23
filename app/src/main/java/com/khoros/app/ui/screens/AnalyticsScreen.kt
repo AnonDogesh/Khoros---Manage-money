@@ -9,14 +9,19 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.FilterChip
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -25,25 +30,29 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.khoros.app.ui.components.DonutChart
 import com.khoros.app.ui.components.LineTrendChart
 import com.khoros.app.viewmodel.AnalyticsViewModel
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 
 /**
  * Presents category spending and trend analytics.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalyticsScreen(viewModel: AnalyticsViewModel) {
     val tx by viewModel.transactions.collectAsState()
-    var mode by remember { mutableStateOf("Overview") }
-    var monthFilter by remember { mutableStateOf(LocalDate.now().monthValue.toString().padStart(2, '0')) }
+    var selectedMonth by remember { mutableStateOf(LocalDate.now().monthValue) }
+    var showMonthPicker by remember { mutableStateOf(false) }
     var showAll by remember { mutableStateOf(false) }
 
     val monthExpenses = tx.filter {
-        it.type == "Expense" && it.date.split("-").getOrNull(1) == monthFilter
+        val month = it.date.split("-").getOrNull(1)?.toIntOrNull()
+        it.type == "Expense" && month == selectedMonth
     }
 
     val expenseByCategory = monthExpenses
@@ -52,13 +61,14 @@ fun AnalyticsScreen(viewModel: AnalyticsViewModel) {
         .toList()
         .sortedByDescending { it.second }
 
-    val trend = when (mode) {
-        "Daily" -> groupDaily(monthExpenses)
-        "Weekly" -> groupWeekly(monthExpenses)
-        else -> groupWeekly(monthExpenses)
-    }
-
+    val trend = groupWeekly(monthExpenses)
     val totalSpent = expenseByCategory.sumOf { it.second.toDouble() }.toFloat()
+    val legendColors = listOf(
+        Color(0xFF0F4561),
+        Color(0xFF27548A),
+        Color(0xFFDDA853),
+        Color(0xFF183B4E)
+    )
 
     Column(
         Modifier
@@ -71,21 +81,28 @@ fun AnalyticsScreen(viewModel: AnalyticsViewModel) {
                 Text("Spending Analytics", style = MaterialTheme.typography.headlineSmall)
                 Text("Insights & Trends", style = MaterialTheme.typography.bodyMedium)
             }
-            OutlinedTextField(
-                value = monthFilter,
-                onValueChange = { if (it.length <= 2) monthFilter = it },
-                label = { Text("Month") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(0.35f)
-            )
+            Row(
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(20.dp))
+                    .clickable { showMonthPicker = true }
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(monthTitle(selectedMonth))
+                androidx.compose.material3.Icon(Icons.Rounded.CalendarMonth, contentDescription = "Select month")
+            }
         }
 
         DonutChart(expenseByCategory, modifier = Modifier.fillMaxWidth())
         Text("Total spent: ₹${"%.0f".format(totalSpent)}", style = MaterialTheme.typography.titleLarge)
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("Overview", "Weekly", "Daily").forEach { option ->
-                FilterChip(selected = mode == option, onClick = { mode = option }, label = { Text(option) })
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            expenseByCategory.take(4).forEachIndexed { index, (name, _) ->
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(10.dp).background(legendColors[index % legendColors.size], CircleShape))
+                    Text(name, style = MaterialTheme.typography.bodySmall)
+                }
             }
         }
 
@@ -99,12 +116,9 @@ fun AnalyticsScreen(viewModel: AnalyticsViewModel) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Top Spending", style = MaterialTheme.typography.titleLarge)
                 Text(
-                    if (showAll) "Collapse" else "View all",
-                    modifier = Modifier
-                        .background(MaterialTheme.colorScheme.background, RoundedCornerShape(12.dp))
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
-                        .align(Alignment.CenterVertically),
-                    style = MaterialTheme.typography.bodyMedium
+                    if (showAll) "View less" else "View all",
+                    modifier = Modifier.clickable { showAll = !showAll },
+                    color = MaterialTheme.colorScheme.tertiary
                 )
             }
             val listToShow = if (showAll) expenseByCategory else expenseByCategory.take(3)
@@ -116,16 +130,6 @@ fun AnalyticsScreen(viewModel: AnalyticsViewModel) {
                     TopSpendingItem(name = name, amount = amount, percent = percent)
                 }
             }
-            Text(
-                if (showAll) "Tap here to collapse" else "Tap here to view all",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.background, RoundedCornerShape(12.dp))
-                    .clickable { showAll = !showAll }
-                    .padding(8.dp)
-                    .align(Alignment.CenterHorizontally),
-                style = MaterialTheme.typography.bodySmall
-            )
         }
 
         Column(
@@ -136,14 +140,34 @@ fun AnalyticsScreen(viewModel: AnalyticsViewModel) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text("Spending Trend", style = MaterialTheme.typography.titleLarge)
+            Text("Expenses only", style = MaterialTheme.typography.bodySmall)
             LineTrendChart(points = trend)
+        }
+    }
+
+    if (showMonthPicker) {
+        val now = LocalDate.now().withMonth(selectedMonth)
+        val millis = now.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val pickerState = androidx.compose.material3.rememberDatePickerState(initialSelectedDateMillis = millis)
+        DatePickerDialog(
+            onDismissRequest = { showMonthPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    val selected = pickerState.selectedDateMillis ?: millis
+                    selectedMonth = Instant.ofEpochMilli(selected).atZone(ZoneId.systemDefault()).toLocalDate().monthValue
+                    showMonthPicker = false
+                }) { Text("Select") }
+            },
+            dismissButton = { TextButton(onClick = { showMonthPicker = false }) { Text("Cancel") } }
+        ) {
+            DatePicker(state = pickerState)
         }
     }
 }
 
-private fun groupDaily(items: List<com.khoros.app.data.model.TransactionEntity>): List<Pair<Float, Float>> {
-    return items.groupBy { it.date.takeLast(2).toIntOrNull() ?: 1 }
-        .toSortedMap().map { (day, list) -> day.toFloat() to list.sumOf { it.amount.toDouble() }.toFloat() }
+private fun monthTitle(month: Int): String {
+    return LocalDate.of(LocalDate.now().year, month.coerceIn(1, 12), 1).month.name.lowercase()
+        .replaceFirstChar { it.titlecase() }
 }
 
 private fun groupWeekly(items: List<com.khoros.app.data.model.TransactionEntity>): List<Pair<Float, Float>> {
