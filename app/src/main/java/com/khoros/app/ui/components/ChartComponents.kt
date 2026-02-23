@@ -70,6 +70,8 @@ fun DonutChart(data: List<Pair<String, Float>>, modifier: Modifier = Modifier) {
 fun LineTrendChart(points: List<Pair<Float, Float>>, modifier: Modifier = Modifier) {
     val maxY = points.maxOfOrNull { it.second }?.coerceAtLeast(1f) ?: 1f
     val progress by animateFloatAsState(targetValue = 1f, animationSpec = tween(800), label = "line-progress")
+    val pointColor = MaterialTheme.colorScheme.tertiary
+    val lineColor = MaterialTheme.colorScheme.primary
 
     Canvas(modifier = modifier.fillMaxWidth().height(180.dp).padding(8.dp)) {
         if (points.size < 2) return@Canvas
@@ -79,8 +81,8 @@ fun LineTrendChart(points: List<Pair<Float, Float>>, modifier: Modifier = Modifi
             val x = index * widthStep
             val yPos = size.height - (y / maxY) * size.height * progress
             if (index == 0) path.moveTo(x, yPos) else path.lineTo(x, yPos)
-            drawCircle(MaterialTheme.colorScheme.tertiary, radius = 7f, center = Offset(x, yPos))
+            drawCircle(pointColor, radius = 7f, center = Offset(x, yPos))
         }
-        drawPath(path = path, color = MaterialTheme.colorScheme.primary, style = Stroke(width = 6f))
+        drawPath(path = path, color = lineColor, style = Stroke(width = 6f))
     }
 }
