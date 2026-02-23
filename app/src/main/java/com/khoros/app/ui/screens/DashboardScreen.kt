@@ -6,7 +6,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,7 +23,10 @@ import com.khoros.app.viewmodel.DashboardViewModel
  * Shows high-level wallet summary and spending trend.
  */
 @Composable
-fun DashboardScreen(viewModel: DashboardViewModel) {
+fun DashboardScreen(
+    viewModel: DashboardViewModel,
+    onSeeAllTransactions: () -> Unit
+) {
     val tx by viewModel.transactions.collectAsState()
     val income by viewModel.totalIncome.collectAsState()
     val expense by viewModel.totalExpense.collectAsState()
@@ -30,25 +34,47 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
 
     LazyColumn(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
-            Card(shape = RoundedCornerShape(24.dp)) {
+            Card {
                 Column(Modifier.padding(20.dp)) {
-                    Text("Total Balance", style = MaterialTheme.typography.titleLarge)
+                    Text("Khoros (খৰচ)", style = MaterialTheme.typography.titleLarge)
+                    Text("Total Balance", style = MaterialTheme.typography.bodyMedium)
                     Text("₹${"%.2f".format(balance)}", style = MaterialTheme.typography.headlineSmall)
                 }
             }
         }
         item {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                MetricCard("Income this month", income, Modifier.weight(1f))
-                MetricCard("Expenses this month", expense, Modifier.weight(1f))
+                MetricCard("Income", income, Modifier.weight(1f))
+                MetricCard("Expense", expense, Modifier.weight(1f))
                 MetricCard("Remaining", income - expense, Modifier.weight(1f))
             }
         }
         item {
             Card {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Daily spending trend", style = MaterialTheme.typography.titleLarge)
+                    Text("Weekly spending", style = MaterialTheme.typography.titleLarge)
                     LineTrendChart(points = viewModel.dailyExpenseTrend(tx))
+                }
+            }
+        }
+        item {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Recent transactions", style = MaterialTheme.typography.titleLarge)
+                Button(onClick = onSeeAllTransactions) { Text("See all") }
+            }
+        }
+        if (tx.isEmpty()) {
+            item { Text("No transactions yet") }
+        } else {
+            items(tx.take(3), key = { it.id }) { item ->
+                Card {
+                    Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column {
+                            Text(item.category)
+                            Text(item.date, style = MaterialTheme.typography.bodySmall)
+                        }
+                        Text(if (item.type == "Income") "+₹${item.amount}" else "-₹${item.amount}")
+                    }
                 }
             }
         }

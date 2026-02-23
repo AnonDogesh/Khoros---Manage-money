@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.khoros.app.data.model.TransactionEntity
 import com.khoros.app.data.repo.KhorosRepository
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -30,6 +29,11 @@ class TransactionsViewModel(private val repository: KhorosRepository) : ViewMode
                 (input.isBlank() || it.category.lowercase().contains(input) || it.notes.lowercase().contains(input))
         }
     }
+
+    /**
+     * Returns a transaction by id for edit screens.
+     */
+    fun findById(id: Int): TransactionEntity? = transactions.value.firstOrNull { it.id == id }
 
     fun add(item: TransactionEntity) = viewModelScope.launch { repository.addTransaction(item) }
 
