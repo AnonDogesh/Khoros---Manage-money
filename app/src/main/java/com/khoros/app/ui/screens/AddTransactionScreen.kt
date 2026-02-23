@@ -67,6 +67,8 @@ fun AddTransactionScreen(
     onCancel: () -> Unit,
     onSaved: () -> Unit
 ) {
+    val defaultNames = listOf("Food", "Travel", "Shop", "Bills", "Fun", "Health", "Learn", "Other")
+
     var type by remember(existing?.id) { mutableStateOf(existing?.type ?: "Expense") }
     var amount by remember(existing?.id) { mutableStateOf(existing?.amount?.toString() ?: "") }
     var category by remember(existing?.id) { mutableStateOf(existing?.category ?: "Food") }
@@ -74,6 +76,7 @@ fun AddTransactionScreen(
     var notes by remember(existing?.id) { mutableStateOf(existing?.notes ?: "") }
     var showDatePicker by remember { mutableStateOf(false) }
     var showManageDialog by remember { mutableStateOf(false) }
+    var showOtherDialog by remember { mutableStateOf(false) }
 
     val categories = if (viewModel.categories.value.isEmpty()) {
         listOf(
@@ -87,6 +90,8 @@ fun AddTransactionScreen(
             CategoryEntity(name = "Other", iconRes = "more_horiz", colorHex = "#DDA853")
         )
     } else viewModel.categories.value
+
+    val extraCategories = categories.filter { it.name !in defaultNames }
 
     Column(
         Modifier
@@ -135,7 +140,13 @@ fun AddTransactionScreen(
                     CategoryTile(
                         category = c,
                         selected = category == c.name,
-                        onClick = { category = c.name },
+                        onClick = {
+                            if (c.name == "Other") {
+                                showOtherDialog = true
+                            } else {
+                                category = c.name
+                            }
+                        },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -193,6 +204,17 @@ fun AddTransactionScreen(
                 viewModel.addCategory(it)
                 category = it
                 showManageDialog = false
+            }
+        )
+    }
+
+    if (showOtherDialog) {
+        OtherCategoriesDialog(
+            items = extraCategories.map { it.name },
+            onDismiss = { showOtherDialog = false },
+            onPick = {
+                category = it
+                showOtherDialog = false
             }
         )
     }
@@ -279,6 +301,33 @@ private fun ManageCategoryDialog(onDismiss: () -> Unit, onAdd: (String) -> Unit)
         title = { Text("Manage Categories") },
         text = {
             OutlinedTextField(value = value, onValueChange = { value = it }, label = { Text("New category") })
+        }
+    )
+}
+
+@Composable
+private fun OtherCategoriesDialog(items: List<String>, onDismiss: () -> Unit, onPick: (String) -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        title = { Text("Additional Categories") },
+        text = {
+            if (items.isEmpty()) {
+                Text("No additional categories yet. Create one from Manage.")
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items.forEach { name ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onPick(name) }
+                                .padding(8.dp)
+                        ) {
+                            Text(name)
+                        }
+                    }
+                }
+            }
         }
     )
 }

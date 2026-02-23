@@ -1,6 +1,6 @@
 package com.khoros.app.ui.screens
 
-import androidx.compose.foundation.background
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,8 +24,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.khoros.app.data.model.CategoryEntity
 import com.khoros.app.viewmodel.TransactionsViewModel
 
 /**
@@ -37,12 +39,28 @@ fun BudgetScreen(
     requestAddCategory: Boolean,
     onAddCategoryConsumed: () -> Unit
 ) {
-    val categories = viewModel.categories.value
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("budget_limits", Context.MODE_PRIVATE) }
+    val categories = if (viewModel.categories.value.isEmpty()) {
+        listOf(
+            CategoryEntity(name = "Food", iconRes = "restaurant", colorHex = "#DDA853"),
+            CategoryEntity(name = "Travel", iconRes = "directions_bus", colorHex = "#27548A"),
+            CategoryEntity(name = "Shop", iconRes = "shopping_bag", colorHex = "#183B4E"),
+            CategoryEntity(name = "Bills", iconRes = "receipt_long", colorHex = "#27548A"),
+            CategoryEntity(name = "Fun", iconRes = "local_movies", colorHex = "#DDA853"),
+            CategoryEntity(name = "Health", iconRes = "medical_services", colorHex = "#183B4E"),
+            CategoryEntity(name = "Learn", iconRes = "school", colorHex = "#27548A"),
+            CategoryEntity(name = "Other", iconRes = "more_horiz", colorHex = "#DDA853")
+        )
+    } else viewModel.categories.value
+
     val limits = remember { mutableStateMapOf<String, Int>() }
     var showAddDialog by remember { mutableStateOf(false) }
 
     categories.forEach { category ->
-        if (limits[category.name] == null) limits[category.name] = 0
+        if (limits[category.name] == null) {
+            limits[category.name] = prefs.getInt(category.name, 0)
+        }
     }
 
     LaunchedEffect(requestAddCategory) {
@@ -72,12 +90,16 @@ fun BudgetScreen(
                         Text("₹$limit")
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { limits[category.name] = (limits[category.name] ?: 0) + 500 }) {
-                            Text("Set Limit")
-                        }
-                        Button(onClick = { limits[category.name] = ((limits[category.name] ?: 0) - 500).coerceAtLeast(0) }) {
-                            Text("Reduce")
-                        }
+                        Button(onClick = {
+                            val updated = (limits[category.name] ?: 0) + 500
+                            limits[category.name] = updated
+                            prefs.edit().putInt(category.name, updated).apply()
+                        }) { Text("Set Limit") }
+                        Button(onClick = {
+                            val updated = ((limits[category.name] ?: 0) - 500).coerceAtLeast(0)
+                            limits[category.name] = updated
+                            prefs.edit().putInt(category.name, updated).apply()
+                        }) { Text("Reduce") }
                     }
                 }
             }
@@ -90,6 +112,7 @@ fun BudgetScreen(
             onAdd = { name, amount ->
                 viewModel.addCategory(name)
                 limits[name] = amount
+                prefs.edit().putInt(name, amount).apply()
                 showAddDialog = false
             }
         )

@@ -16,12 +16,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CalendarMonth
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -35,24 +33,25 @@ import androidx.compose.ui.unit.dp
 import com.khoros.app.ui.components.DonutChart
 import com.khoros.app.ui.components.LineTrendChart
 import com.khoros.app.viewmodel.AnalyticsViewModel
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
+import java.time.Month
 
 /**
  * Presents category spending and trend analytics.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalyticsScreen(viewModel: AnalyticsViewModel) {
     val tx by viewModel.transactions.collectAsState()
+    var selectedYear by remember { mutableStateOf(LocalDate.now().year) }
     var selectedMonth by remember { mutableStateOf(LocalDate.now().monthValue) }
-    var showMonthPicker by remember { mutableStateOf(false) }
+    var showMonthMenu by remember { mutableStateOf(false) }
     var showAll by remember { mutableStateOf(false) }
 
     val monthExpenses = tx.filter {
-        val month = it.date.split("-").getOrNull(1)?.toIntOrNull()
-        it.type == "Expense" && month == selectedMonth
+        val parts = it.date.split("-")
+        val year = parts.getOrNull(0)?.toIntOrNull()
+        val month = parts.getOrNull(1)?.toIntOrNull()
+        it.type == "Expense" && month == selectedMonth && year == selectedYear
     }
 
     val expenseByCategory = monthExpenses
@@ -81,16 +80,36 @@ fun AnalyticsScreen(viewModel: AnalyticsViewModel) {
                 Text("Spending Analytics", style = MaterialTheme.typography.headlineSmall)
                 Text("Insights & Trends", style = MaterialTheme.typography.bodyMedium)
             }
-            Row(
-                modifier = Modifier
-                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(20.dp))
-                    .clickable { showMonthPicker = true }
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(monthTitle(selectedMonth))
-                androidx.compose.material3.Icon(Icons.Rounded.CalendarMonth, contentDescription = "Select month")
+            Box {
+                Row(
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(20.dp))
+                        .clickable { showMonthMenu = true }
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("${monthTitle(selectedMonth)} $selectedYear")
+                    androidx.compose.material3.Icon(Icons.Rounded.CalendarMonth, contentDescription = "Select month")
+                }
+                DropdownMenu(expanded = showMonthMenu, onDismissRequest = { showMonthMenu = false }) {
+                    val yearOptions = (selectedYear - 2..selectedYear + 1).toList().reversed()
+                    yearOptions.forEach { year ->
+                        DropdownMenuItem(
+                            text = { Text("Year $year") },
+                            onClick = { selectedYear = year }
+                        )
+                    }
+                    Month.values().forEach { month ->
+                        DropdownMenuItem(
+                            text = { Text(month.name.lowercase().replaceFirstChar { it.titlecase() }) },
+                            onClick = {
+                                selectedMonth = month.value
+                                showMonthMenu = false
+                            }
+                        )
+                    }
+                }
             }
         }
 
@@ -142,25 +161,6 @@ fun AnalyticsScreen(viewModel: AnalyticsViewModel) {
             Text("Spending Trend", style = MaterialTheme.typography.titleLarge)
             Text("Expenses only", style = MaterialTheme.typography.bodySmall)
             LineTrendChart(points = trend)
-        }
-    }
-
-    if (showMonthPicker) {
-        val now = LocalDate.now().withMonth(selectedMonth)
-        val millis = now.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-        val pickerState = androidx.compose.material3.rememberDatePickerState(initialSelectedDateMillis = millis)
-        DatePickerDialog(
-            onDismissRequest = { showMonthPicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    val selected = pickerState.selectedDateMillis ?: millis
-                    selectedMonth = Instant.ofEpochMilli(selected).atZone(ZoneId.systemDefault()).toLocalDate().monthValue
-                    showMonthPicker = false
-                }) { Text("Select") }
-            },
-            dismissButton = { TextButton(onClick = { showMonthPicker = false }) { Text("Cancel") } }
-        ) {
-            DatePicker(state = pickerState)
         }
     }
 }
