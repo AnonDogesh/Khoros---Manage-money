@@ -14,6 +14,14 @@ class SettingsViewModel : ViewModel() {
     var selectedCurrency by mutableStateOf("₹")
         private set
 
+    val currencyCode: String
+        get() = when (selectedCurrency) {
+            "₹" -> "INR (₹)"
+            "$" -> "USD ($)"
+            "€" -> "EUR (€)"
+            else -> selectedCurrency
+        }
+
     var darkThemeEnabled by mutableStateOf(false)
         private set
 

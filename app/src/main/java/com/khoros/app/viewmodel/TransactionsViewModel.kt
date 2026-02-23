@@ -42,4 +42,8 @@ class TransactionsViewModel(private val repository: KhorosRepository) : ViewMode
     fun delete(item: TransactionEntity) = viewModelScope.launch { repository.deleteTransaction(item) }
 
     fun addCategory(name: String) = viewModelScope.launch { repository.addCategory(name = name) }
+
+    fun resetOfflineData() = viewModelScope.launch { repository.resetOfflineData() }
+
+    fun deleteOfflineAccountData() = viewModelScope.launch { repository.deleteOfflineAccountData() }
 }

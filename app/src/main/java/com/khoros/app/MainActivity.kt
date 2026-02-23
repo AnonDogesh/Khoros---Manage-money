@@ -30,6 +30,7 @@ import com.khoros.app.data.local.KhorosDatabase
 import com.khoros.app.data.repo.KhorosRepository
 import com.khoros.app.ui.navigation.NavDestination
 import com.khoros.app.ui.navigation.bottomDestinations
+import com.khoros.app.ui.screens.AccountSettingsScreen
 import com.khoros.app.ui.screens.AddTransactionScreen
 import com.khoros.app.ui.screens.AnalyticsScreen
 import com.khoros.app.ui.screens.BudgetScreen
@@ -74,18 +75,20 @@ fun KhorosApp(factory: ViewModelFactory) {
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = {
-                if (currentRoute == NavDestination.Budget.route) {
-                    budgetAddRequest = true
-                } else {
-                    navController.navigate("add_transaction")
+            if (currentRoute !in listOf(NavDestination.Profile.route, NavDestination.AccountSettings.route)) {
+                FloatingActionButton(onClick = {
+                    if (currentRoute == NavDestination.Budget.route) {
+                        budgetAddRequest = true
+                    } else {
+                        navController.navigate("add_transaction")
+                    }
+                }) {
+                    Icon(Icons.Rounded.Add, contentDescription = "Add transaction")
                 }
-            }) {
-                Icon(Icons.Rounded.Add, contentDescription = "Add transaction")
             }
         },
         bottomBar = {
-            if (currentRoute?.startsWith("add_transaction") != true) {
+            if (currentRoute?.startsWith("add_transaction") != true && currentRoute != NavDestination.AccountSettings.route) {
                 NavigationBar {
                     val route = navController.currentBackStackEntryAsState().value?.destination?.route
                     bottomDestinations.forEach { item ->
@@ -122,7 +125,21 @@ fun KhorosApp(factory: ViewModelFactory) {
                     onAddCategoryConsumed = { budgetAddRequest = false }
                 )
             }
-            composable(NavDestination.Profile.route) { ProfileScreen(settingsVm, tx) }
+            composable(NavDestination.Profile.route) {
+                ProfileScreen(
+                    viewModel = settingsVm,
+                    transactions = tx,
+                    onOpenAccountSettings = { navController.navigate(NavDestination.AccountSettings.route) },
+                    onOpenCategories = { navController.navigate(NavDestination.Budget.route) },
+                    onBack = { navController.navigate(NavDestination.Home.route) }
+                )
+            }
+            composable(NavDestination.AccountSettings.route) {
+                AccountSettingsScreen(
+                    transactionsViewModel = txVm,
+                    onBack = { navController.popBackStack() }
+                )
+            }
             composable(
                 route = NavDestination.AddTransaction.route,
                 arguments = listOf(navArgument("transactionId") { type = NavType.StringType; nullable = true; defaultValue = null })

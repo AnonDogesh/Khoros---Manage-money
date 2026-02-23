@@ -16,6 +16,7 @@ sealed class NavDestination(val route: String, val title: String, val icon: Imag
     data object Budget : NavDestination("budget", "Budget", Icons.Rounded.AccountBalanceWallet)
     data object Profile : NavDestination("profile", "Profile", Icons.Rounded.Person)
     data object Transactions : NavDestination("transactions", "Transactions")
+    data object AccountSettings : NavDestination("account_settings", "Account Settings")
     data object AddTransaction : NavDestination("add_transaction?transactionId={transactionId}", "Add")
 }
 

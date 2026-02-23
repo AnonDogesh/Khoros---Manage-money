@@ -28,6 +28,19 @@ class KhorosRepository(
         categoryDao.insert(CategoryEntity(name = name, iconRes = iconRes, colorHex = colorHex))
     }
 
+
+
+    suspend fun resetOfflineData() {
+        transactionDao.clearAll()
+        categoryDao.clearAll()
+        seedCategoriesIfDatabaseEmpty()
+    }
+
+    suspend fun deleteOfflineAccountData() {
+        transactionDao.clearAll()
+        categoryDao.clearAll()
+    }
+
     suspend fun seedCategoriesIfDatabaseEmpty() {
         if (categoryDao.countCategories() > 0) return
         categoryDao.upsert(
