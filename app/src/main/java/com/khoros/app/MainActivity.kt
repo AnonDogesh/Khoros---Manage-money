@@ -13,8 +13,8 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -29,8 +29,9 @@ import com.khoros.app.ui.navigation.NavDestination
 import com.khoros.app.ui.navigation.bottomDestinations
 import com.khoros.app.ui.screens.AddTransactionScreen
 import com.khoros.app.ui.screens.AnalyticsScreen
+import com.khoros.app.ui.screens.BudgetScreen
 import com.khoros.app.ui.screens.DashboardScreen
-import com.khoros.app.ui.screens.SettingsScreen
+import com.khoros.app.ui.screens.ProfileScreen
 import com.khoros.app.ui.screens.TransactionsScreen
 import com.khoros.app.ui.theme.KhorosTheme
 import com.khoros.app.viewmodel.AnalyticsViewModel
@@ -89,8 +90,8 @@ fun KhorosApp(factory: ViewModelFactory) {
             }
         }
     ) { paddingValues ->
-        NavHost(navController = navController, startDestination = NavDestination.Dashboard.route, Modifier.padding(paddingValues)) {
-            composable(NavDestination.Dashboard.route) {
+        NavHost(navController = navController, startDestination = NavDestination.Home.route, Modifier.padding(paddingValues)) {
+            composable(NavDestination.Home.route) {
                 DashboardScreen(
                     viewModel = dashboardVm,
                     onSeeAllTransactions = { navController.navigate(NavDestination.Transactions.route) }
@@ -99,11 +100,13 @@ fun KhorosApp(factory: ViewModelFactory) {
             composable(NavDestination.Transactions.route) {
                 TransactionsScreen(
                     viewModel = txVm,
-                    onEdit = { navController.navigate("add_transaction?transactionId=${it.id}") }
+                    onEdit = { navController.navigate("add_transaction?transactionId=${it.id}") },
+                    onBack = { navController.popBackStack() }
                 )
             }
             composable(NavDestination.Analytics.route) { AnalyticsScreen(analyticsVm) }
-            composable(NavDestination.Settings.route) { SettingsScreen(settingsVm, tx) }
+            composable(NavDestination.Budget.route) { BudgetScreen() }
+            composable(NavDestination.Profile.route) { ProfileScreen(settingsVm, tx) }
             composable(
                 route = NavDestination.AddTransaction.route,
                 arguments = listOf(navArgument("transactionId") { type = NavType.StringType; nullable = true; defaultValue = null })

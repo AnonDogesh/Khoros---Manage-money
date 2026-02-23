@@ -1,26 +1,27 @@
 package com.khoros.app.ui.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.Analytics
-import androidx.compose.material.icons.rounded.Dashboard
-import androidx.compose.material.icons.rounded.ReceiptLong
-import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
  * Defines app navigation destinations.
  */
 sealed class NavDestination(val route: String, val title: String, val icon: ImageVector? = null) {
-    data object Dashboard : NavDestination("dashboard", "Dashboard", Icons.Rounded.Dashboard)
-    data object Transactions : NavDestination("transactions", "Transactions", Icons.Rounded.ReceiptLong)
+    data object Home : NavDestination("home", "Home", Icons.Rounded.Home)
     data object Analytics : NavDestination("analytics", "Analytics", Icons.Rounded.Analytics)
-    data object Settings : NavDestination("settings", "Settings", Icons.Rounded.Settings)
+    data object Budget : NavDestination("budget", "Budget", Icons.Rounded.AccountBalanceWallet)
+    data object Profile : NavDestination("profile", "Profile", Icons.Rounded.Person)
+    data object Transactions : NavDestination("transactions", "Transactions")
     data object AddTransaction : NavDestination("add_transaction?transactionId={transactionId}", "Add")
 }
 
 val bottomDestinations = listOf(
-    NavDestination.Dashboard,
-    NavDestination.Transactions,
+    NavDestination.Home,
     NavDestination.Analytics,
-    NavDestination.Settings
+    NavDestination.Budget,
+    NavDestination.Profile
 )
