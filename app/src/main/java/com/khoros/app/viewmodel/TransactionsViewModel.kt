@@ -40,4 +40,6 @@ class TransactionsViewModel(private val repository: KhorosRepository) : ViewMode
     fun update(item: TransactionEntity) = viewModelScope.launch { repository.updateTransaction(item) }
 
     fun delete(item: TransactionEntity) = viewModelScope.launch { repository.deleteTransaction(item) }
+
+    fun addCategory(name: String) = viewModelScope.launch { repository.addCategory(name = name) }
 }

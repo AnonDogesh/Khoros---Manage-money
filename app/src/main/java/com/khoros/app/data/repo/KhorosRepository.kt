@@ -24,14 +24,22 @@ class KhorosRepository(
 
     suspend fun deleteTransactionById(id: Int) = transactionDao.deleteById(id)
 
+    suspend fun addCategory(name: String, iconRes: String = "category", colorHex: String = "#DDA853") {
+        categoryDao.upsert(listOf(CategoryEntity(name = name, iconRes = iconRes, colorHex = colorHex)))
+    }
+
     suspend fun seedCategoriesIfEmpty(current: List<CategoryEntity>) {
         if (current.isNotEmpty()) return
         categoryDao.upsert(
             listOf(
-                CategoryEntity(name = "Food & Dining", iconRes = "restaurant", colorHex = "#BBC863"),
-                CategoryEntity(name = "Transport", iconRes = "directions_car", colorHex = "#658C58"),
-                CategoryEntity(name = "Utilities", iconRes = "bolt", colorHex = "#31694E"),
-                CategoryEntity(name = "Rent & Bills", iconRes = "home", colorHex = "#F0E491")
+                CategoryEntity(name = "Food", iconRes = "restaurant", colorHex = "#DDA853"),
+                CategoryEntity(name = "Travel", iconRes = "directions_bus", colorHex = "#27548A"),
+                CategoryEntity(name = "Shop", iconRes = "shopping_bag", colorHex = "#183B4E"),
+                CategoryEntity(name = "Bills", iconRes = "receipt_long", colorHex = "#27548A"),
+                CategoryEntity(name = "Fun", iconRes = "local_movies", colorHex = "#DDA853"),
+                CategoryEntity(name = "Health", iconRes = "medical_services", colorHex = "#183B4E"),
+                CategoryEntity(name = "Learn", iconRes = "school", colorHex = "#27548A"),
+                CategoryEntity(name = "Other", iconRes = "more_horiz", colorHex = "#DDA853")
             )
         )
     }
