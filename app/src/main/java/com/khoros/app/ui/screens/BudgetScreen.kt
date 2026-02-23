@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -41,25 +42,26 @@ fun BudgetScreen(
 ) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("budget_limits", Context.MODE_PRIVATE) }
-    val categories = if (viewModel.categories.value.isEmpty()) {
-        listOf(
-            CategoryEntity(name = "Food", iconRes = "restaurant", colorHex = "#DDA853"),
-            CategoryEntity(name = "Travel", iconRes = "directions_bus", colorHex = "#27548A"),
-            CategoryEntity(name = "Shop", iconRes = "shopping_bag", colorHex = "#183B4E"),
-            CategoryEntity(name = "Bills", iconRes = "receipt_long", colorHex = "#27548A"),
-            CategoryEntity(name = "Fun", iconRes = "local_movies", colorHex = "#DDA853"),
-            CategoryEntity(name = "Health", iconRes = "medical_services", colorHex = "#183B4E"),
-            CategoryEntity(name = "Learn", iconRes = "school", colorHex = "#27548A"),
-            CategoryEntity(name = "Other", iconRes = "more_horiz", colorHex = "#DDA853")
-        )
-    } else viewModel.categories.value
+    val defaultCategories = listOf(
+        CategoryEntity(name = "Food", iconRes = "restaurant", colorHex = "#DDA853"),
+        CategoryEntity(name = "Travel", iconRes = "directions_bus", colorHex = "#27548A"),
+        CategoryEntity(name = "Shop", iconRes = "shopping_bag", colorHex = "#183B4E"),
+        CategoryEntity(name = "Bills", iconRes = "receipt_long", colorHex = "#27548A"),
+        CategoryEntity(name = "Fun", iconRes = "local_movies", colorHex = "#DDA853"),
+        CategoryEntity(name = "Health", iconRes = "medical_services", colorHex = "#183B4E"),
+        CategoryEntity(name = "Learn", iconRes = "school", colorHex = "#27548A"),
+        CategoryEntity(name = "Other", iconRes = "more_horiz", colorHex = "#DDA853")
+    )
+    val categoriesFromDb by viewModel.categories.collectAsState()
 
     val limits = remember { mutableStateMapOf<String, Int>() }
     var showAddDialog by remember { mutableStateOf(false) }
 
-    categories.forEach { category ->
-        if (limits[category.name] == null) {
-            limits[category.name] = prefs.getInt(category.name, 0)
+    val mergedCategoryNames = (defaultCategories.map { it.name } + categoriesFromDb.map { it.name } + limits.keys).distinctBy { it.lowercase() }
+
+    mergedCategoryNames.forEach { categoryName ->
+        if (limits[categoryName] == null) {
+            limits[categoryName] = prefs.getInt(categoryName, 0)
         }
     }
 
@@ -81,24 +83,24 @@ fun BudgetScreen(
         Text("Budget & Limits", style = MaterialTheme.typography.headlineSmall)
         Text("Total Budget: ₹$totalBudget", style = MaterialTheme.typography.titleLarge)
 
-        categories.forEach { category ->
-            val limit = limits[category.name] ?: 0
+        mergedCategoryNames.forEach { categoryName ->
+            val limit = limits[categoryName] ?: 0
             Card {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(category.name, style = MaterialTheme.typography.titleLarge)
+                        Text(categoryName, style = MaterialTheme.typography.titleLarge)
                         Text("₹$limit")
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = {
-                            val updated = (limits[category.name] ?: 0) + 500
-                            limits[category.name] = updated
-                            prefs.edit().putInt(category.name, updated).apply()
+                            val updated = (limits[categoryName] ?: 0) + 500
+                            limits[categoryName] = updated
+                            prefs.edit().putInt(categoryName, updated).apply()
                         }) { Text("Set Limit") }
                         Button(onClick = {
-                            val updated = ((limits[category.name] ?: 0) - 500).coerceAtLeast(0)
-                            limits[category.name] = updated
-                            prefs.edit().putInt(category.name, updated).apply()
+                            val updated = ((limits[categoryName] ?: 0) - 500).coerceAtLeast(0)
+                            limits[categoryName] = updated
+                            prefs.edit().putInt(categoryName, updated).apply()
                         }) { Text("Reduce") }
                     }
                 }
@@ -110,9 +112,10 @@ fun BudgetScreen(
         AddBudgetCategoryDialog(
             onDismiss = { showAddDialog = false },
             onAdd = { name, amount ->
-                viewModel.addCategory(name)
-                limits[name] = amount
-                prefs.edit().putInt(name, amount).apply()
+                val normalizedName = name.trim()
+                viewModel.addCategory(normalizedName)
+                limits[normalizedName] = amount
+                prefs.edit().putInt(normalizedName, amount).apply()
                 showAddDialog = false
             }
         )

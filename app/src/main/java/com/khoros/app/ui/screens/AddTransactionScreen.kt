@@ -42,6 +42,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,21 +78,21 @@ fun AddTransactionScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     var showManageDialog by remember { mutableStateOf(false) }
     var showOtherDialog by remember { mutableStateOf(false) }
+    val defaultCategories = listOf(
+        CategoryEntity(name = "Food", iconRes = "restaurant", colorHex = "#DDA853"),
+        CategoryEntity(name = "Travel", iconRes = "directions_bus", colorHex = "#27548A"),
+        CategoryEntity(name = "Shop", iconRes = "shopping_bag", colorHex = "#183B4E"),
+        CategoryEntity(name = "Bills", iconRes = "receipt_long", colorHex = "#27548A"),
+        CategoryEntity(name = "Fun", iconRes = "local_movies", colorHex = "#DDA853"),
+        CategoryEntity(name = "Health", iconRes = "medical_services", colorHex = "#183B4E"),
+        CategoryEntity(name = "Learn", iconRes = "school", colorHex = "#27548A"),
+        CategoryEntity(name = "Other", iconRes = "more_horiz", colorHex = "#DDA853")
+    )
 
-    val categories = if (viewModel.categories.value.isEmpty()) {
-        listOf(
-            CategoryEntity(name = "Food", iconRes = "restaurant", colorHex = "#DDA853"),
-            CategoryEntity(name = "Travel", iconRes = "directions_bus", colorHex = "#27548A"),
-            CategoryEntity(name = "Shop", iconRes = "shopping_bag", colorHex = "#183B4E"),
-            CategoryEntity(name = "Bills", iconRes = "receipt_long", colorHex = "#27548A"),
-            CategoryEntity(name = "Fun", iconRes = "local_movies", colorHex = "#DDA853"),
-            CategoryEntity(name = "Health", iconRes = "medical_services", colorHex = "#183B4E"),
-            CategoryEntity(name = "Learn", iconRes = "school", colorHex = "#27548A"),
-            CategoryEntity(name = "Other", iconRes = "more_horiz", colorHex = "#DDA853")
-        )
-    } else viewModel.categories.value
-
-    val extraCategories = categories.filter { it.name !in defaultNames }
+    val categoriesFromDb by viewModel.categories.collectAsState()
+    val mergedCategories = (defaultCategories + categoriesFromDb).distinctBy { it.name.lowercase() }
+    val defaultLowerNames = defaultNames.map { it.lowercase() }.toSet()
+    val extraCategories = mergedCategories.filter { it.name.lowercase() !in defaultLowerNames }
 
     Column(
         Modifier
@@ -134,7 +135,7 @@ fun AddTransactionScreen(
             TextButton(onClick = { showManageDialog = true }) { Text("Manage") }
         }
 
-        categories.chunked(4).forEach { row ->
+        mergedCategories.chunked(4).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 row.forEach { c ->
                     CategoryTile(
@@ -201,8 +202,9 @@ fun AddTransactionScreen(
         ManageCategoryDialog(
             onDismiss = { showManageDialog = false },
             onAdd = {
-                viewModel.addCategory(it)
-                category = it
+                val newName = it.trim()
+                viewModel.addCategory(newName)
+                category = newName
                 showManageDialog = false
             }
         )
