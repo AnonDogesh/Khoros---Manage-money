@@ -16,7 +16,7 @@ class TransactionsViewModel(private val repository: KhorosRepository) : ViewMode
     val categories = repository.categories.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
-        viewModelScope.launch { repository.seedCategoriesIfEmpty(categories.value) }
+        viewModelScope.launch { repository.seedCategoriesIfDatabaseEmpty() }
     }
 
     /**

@@ -75,7 +75,18 @@ fun AddTransactionScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     var showManageDialog by remember { mutableStateOf(false) }
 
-    val categories = viewModel.categories.value
+    val categories = if (viewModel.categories.value.isEmpty()) {
+        listOf(
+            CategoryEntity(name = "Food", iconRes = "restaurant", colorHex = "#DDA853"),
+            CategoryEntity(name = "Travel", iconRes = "directions_bus", colorHex = "#27548A"),
+            CategoryEntity(name = "Shop", iconRes = "shopping_bag", colorHex = "#183B4E"),
+            CategoryEntity(name = "Bills", iconRes = "receipt_long", colorHex = "#27548A"),
+            CategoryEntity(name = "Fun", iconRes = "local_movies", colorHex = "#DDA853"),
+            CategoryEntity(name = "Health", iconRes = "medical_services", colorHex = "#183B4E"),
+            CategoryEntity(name = "Learn", iconRes = "school", colorHex = "#27548A"),
+            CategoryEntity(name = "Other", iconRes = "more_horiz", colorHex = "#DDA853")
+        )
+    } else viewModel.categories.value
 
     Column(
         Modifier

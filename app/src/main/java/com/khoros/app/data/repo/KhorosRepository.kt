@@ -25,11 +25,11 @@ class KhorosRepository(
     suspend fun deleteTransactionById(id: Int) = transactionDao.deleteById(id)
 
     suspend fun addCategory(name: String, iconRes: String = "category", colorHex: String = "#DDA853") {
-        categoryDao.upsert(listOf(CategoryEntity(name = name, iconRes = iconRes, colorHex = colorHex)))
+        categoryDao.insert(CategoryEntity(name = name, iconRes = iconRes, colorHex = colorHex))
     }
 
-    suspend fun seedCategoriesIfEmpty(current: List<CategoryEntity>) {
-        if (current.isNotEmpty()) return
+    suspend fun seedCategoriesIfDatabaseEmpty() {
+        if (categoryDao.countCategories() > 0) return
         categoryDao.upsert(
             listOf(
                 CategoryEntity(name = "Food", iconRes = "restaurant", colorHex = "#DDA853"),

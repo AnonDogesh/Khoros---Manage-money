@@ -15,6 +15,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -67,10 +70,17 @@ fun KhorosApp(factory: ViewModelFactory) {
     val settingsVm: SettingsViewModel = viewModel(factory = factory)
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     val tx by txVm.transactions.collectAsState()
+    var budgetAddRequest by remember { mutableStateOf(false) }
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = { navController.navigate("add_transaction") }) {
+            FloatingActionButton(onClick = {
+                if (currentRoute == NavDestination.Budget.route) {
+                    budgetAddRequest = true
+                } else {
+                    navController.navigate("add_transaction")
+                }
+            }) {
                 Icon(Icons.Rounded.Add, contentDescription = "Add transaction")
             }
         },
@@ -105,7 +115,12 @@ fun KhorosApp(factory: ViewModelFactory) {
                 )
             }
             composable(NavDestination.Analytics.route) { AnalyticsScreen(analyticsVm) }
-            composable(NavDestination.Budget.route) { BudgetScreen() }
+            composable(NavDestination.Budget.route) {
+                BudgetScreen(
+                    requestAddCategory = budgetAddRequest,
+                    onAddCategoryConsumed = { budgetAddRequest = false }
+                )
+            }
             composable(NavDestination.Profile.route) { ProfileScreen(settingsVm, tx) }
             composable(
                 route = NavDestination.AddTransaction.route,
